@@ -1,32 +1,28 @@
-export const getMovieRecommendations = async (prompt) => {
+// /api/openrouter/route.js
+import { NextResponse } from "next/server";
+
+export async function POST(request) {
+  const body = await request.json();
+
   try {
-    const response = await fetch("/api/openrouter", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "anthropic/claude-3-haiku",
-        messages: [
-          {
-            role: "system",
-            content: "Your system prompt here...",
-          },
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.9,
-      }),
-    });
+    const response = await fetch(
+      "https://openrouter.ai/api/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "HTTP-Referer":
+            request.headers.get("referer") || "https://yourdomain.com",
+          "X-Title": "MovieDB",
+        },
+        body: JSON.stringify(body),
+      }
+    );
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.choices[0]?.message?.content;
+    if (!response.ok) throw new Error("OpenRouter API error");
+    return NextResponse.json(await response.json());
   } catch (error) {
-    console.error("Failed to get recommendations:", error);
-    return "System busy calculating the optimal insult... try again later";
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
-};
+}
